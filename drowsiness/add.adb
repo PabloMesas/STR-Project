@@ -1,10 +1,17 @@
 
+--------------------------------------------
+-----             STR 2018             -----
+-----       Pablo Mesas Lafarga        -----
+-----    Alejandro Mendez Fernandez    -----
+--------------------------------------------
+
 with Kernel.Serial_Output; use Kernel.Serial_Output;
 with Ada.Real_Time; use Ada.Real_Time;
 with System; use System;
 
 with Tools; use Tools;
 with Devices; use Devices;
+--with Ada.Calendar; use Ada.Calendar;
 
 -- Packages needed to generate pulse interrupts       
 -- with Ada.Interrupts.Names;
@@ -16,9 +23,13 @@ package body add is
     ------------- declaration of tasks 
     -----------------------------------------------------------------------
 
-    procedure Electrodes;
+    task Electrodes is 
+    pragma priority (System.Priority'First + 10);
+    end Electrodes;
 
-    procedure Eyes_Detection; 
+    task Eyes_Detection is 
+    pragma priority (System.Priority'First + 10);
+    end Eyes_Detection; 
 
     ----------------------------------------------------------------------
     ------------- procedure exported 
@@ -31,32 +42,48 @@ package body add is
     end Background;
     ----------------------------------------------------------------------
 
-    ---------------------------------------------------------------------
-    Procedure Electrodes  is 
+    ----------------------------------------------------------------------
+    task body Electrodes  is 
         R: EEG_Samples_Type;
+        next_time: Time;
+        period : constant Time_Span := Milliseconds (300);
     begin
-         Starting_Notice ("Electrodes"); 
-         Reading_Sensors (R);
-         Display_Electrodes_Sample (R);
-         Finishing_Notice ("Electrodes");
+        next_time:= clock + period;
+        loop
+            Starting_Notice ("Start_Electrodes"); 
+            Reading_Sensors (R);
+            Display_Electrodes_Sample (R);
+            Finishing_Notice ("Finish_Electrodes");
+
+            delay until next_time;
+            next_time:= next_time + period;
+        end loop;
+        
     end Electrodes;
 
     ---------------------------------------------------------------------
-    Procedure Eyes_Detection is
+    task body Eyes_Detection is
         Current_R: Eyes_Samples_Type;
+        next_time: Time;
+        period : constant Time_Span := Milliseconds (150);
     begin
-         Starting_Notice ("Eyes_Detection");
-         Reading_EyesImage (Current_R);
-         Display_Eyes_Sample (Current_R);
-         Beep (3);
-         Finishing_Notice ("Eyes_Detection");
+        next_time := clock + period;
+        loop
+            Starting_Notice ("Start_Eyes_Detection");
+            Reading_EyesImage (Current_R);
+            Display_Eyes_Sample (Current_R);
+    --        Beep (3);  --El conductor se despierta durante 2 segundos y luego cae.
+            Finishing_Notice ("Finish_Eyes_Detection");
+
+            delay until next_time;
+            next_time:= next_time + period;
+        end loop;
+
     end Eyes_Detection;
 
 
 begin
    null;
-   Electrodes;
-   Eyes_Detection;
 end add;
 
 

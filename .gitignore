@@ -1,0 +1,6 @@
+*.o
+*.ali
+*.map
+*.nm
+
+drowsiness/main

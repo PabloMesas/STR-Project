@@ -157,12 +157,12 @@ package body add is
     begin
         next_time := clock + period;
         loop
-            Starting_Notice ("Start_Show_Fucking_Info");
+            Starting_Notice ("Start_Show_Info");
             R_eyes := Eyes_state.get_r_eyes;
             R_eeg := EEG_state.get_r_eeg;
             Display_Eyes_Sample (R_eyes);
             Display_Electrodes_Sample(R_eeg);
-            Finishing_Notice ("Finish_Fucking_Info");
+            Finishing_Notice ("Finish_Info");
 
             delay until next_time;
             next_time:= next_time + period;

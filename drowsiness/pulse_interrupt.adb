@@ -30,7 +30,7 @@ package body pulse_interrupt is
          j := j + 1;
 
          --Hora_Actual (Big_Bang);
-         --Put ("======> Interrupción Externa 2 ");
+         --Put ("======> Interrupcion Externa 2 ");
       end loop;
    end Interrupt;
 

@@ -5,6 +5,13 @@
 -----    Alejandro Mendez Fernandez    -----
 --------------------------------------------
 
+-- t- eyes                  -- OP-Eyes
+-- t- EEG                   -- OP-EEG
+-- t- ShowInfo              --OP-Pulse
+-- t- Pulse
+-- +RTI (Work in Progress)
+
+
 with Kernel.Serial_Output; use Kernel.Serial_Output;
 with Ada.Real_Time; use Ada.Real_Time;
 with System; use System;
@@ -32,16 +39,25 @@ package body add is
     protected EEG_state is
         function get_r_eeg return EEG_Samples_Type;
         procedure set_r_eeg (r: EEG_Samples_Type);
+        function get_pulse return Values_Pulse_Rate;
+        procedure set_pulse (P: Values_Pulse_Rate);
     private 
             R_eeg: EEG_Samples_Type := (others=>0);
+            P_pulse_rate: Values_Pulse_Rate := 20.0;
     end EEG_state;
+
+    protected int_handler is
+        procedure Handler;
+        pragma Interrupt_Handler (Handler);
+        private
+    end int_handler;
     
     -----------------------------------------------------------------------
     ------------- declaration of tasks 
     -----------------------------------------------------------------------
 
     task Electrodes is 
-    pragma priority (System.Priority'First + 10);
+    pragma priority (System.Priority'First + 11);
     end Electrodes;
 
     task Eyes_Detection is 
@@ -49,8 +65,12 @@ package body add is
     end Eyes_Detection; 
 
     task Show_info is
-    pragma priority (System.Priority'First + 9);
+    pragma priority (System.Priority'First + 8);
     end Show_info;
+
+    task Pulse_measuring is
+    pragma priority (System.Priority'First + 12);
+    end Pulse_measuring;
 
     ----------------------------------------------------------------------
     ------------- procedure exported 
@@ -87,7 +107,24 @@ package body add is
             begin
                 R_eeg := r;
         end set_r_eeg;
+
+        function get_pulse return Values_Pulse_Rate is
+            begin
+                return P_pulse_rate;
+        end get_pulse;
+
+        procedure set_pulse (P: Values_Pulse_Rate) is
+            begin
+                P_pulse_rate := P;
+        end set_pulse;
     end EEG_state;
+
+    protected body int_handler is 
+        procedure Handler is
+            begin
+
+        end Handler;
+    end int_handler;
 
     ----------------------------------------------------------------------
     task body Electrodes  is 
@@ -152,6 +189,7 @@ package body add is
     task body Show_info is
         R_eyes: Eyes_Samples_Type;
         R_eeg: EEG_Samples_Type;
+        Pulse: Values_Pulse_Rate;
         next_time: Time;
         period : constant Time_Span := Milliseconds (1000);
     begin
@@ -160,8 +198,10 @@ package body add is
             Starting_Notice ("Start_Show_Info");
             R_eyes := Eyes_state.get_r_eyes;
             R_eeg := EEG_state.get_r_eeg;
+            Pulse := EEG_state.get_pulse;
             Display_Eyes_Sample (R_eyes);
             Display_Electrodes_Sample(R_eeg);
+            Display_Pulse_Rate (Pulse);
             Finishing_Notice ("Finish_Info");
 
             delay until next_time;
@@ -170,11 +210,28 @@ package body add is
 
     end Show_info;
 
+    ---------------------------------------------------------------------
+    task body Pulse_measuring is
+        R_eeg: EEG_Samples_Type;
+        last_time: time;
+        time_lapsed: Time_Span;
+    begin
+        loop
+            Starting_Notice ("Start_Pulse_measuring");
+            R_eeg := EEG_state.get_r_eeg;
+            Finishing_Notice ("Finish_Pulse_measuring");
+
+        end loop;
+
+    end Pulse_measuring;
+
 
 
 begin
    null;
 end add;
+
+
 
 
 

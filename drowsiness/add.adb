@@ -46,11 +46,11 @@ package body add is
             P_pulse_rate: Values_Pulse_Rate := 20.0;
     end EEG_state;
 
-    protected int_handler is
-        procedure Handler;
-        pragma Interrupt_Handler (Handler);
-        private
-    end int_handler;
+    -- protected int_handler is
+    --     procedure Handler;
+    --     pragma Interrupt_Handler (Handler);
+    --     private
+    -- end int_handler;
     
     -----------------------------------------------------------------------
     ------------- declaration of tasks 
@@ -115,27 +115,36 @@ package body add is
 
         procedure set_pulse (P: Values_Pulse_Rate) is
             begin
-                P_pulse_rate := P;
+                if(P >= 20.0) then
+                    if(P > 300.0) then
+                        P_pulse_rate := 300.0;
+                    else
+                        P_pulse_rate := P;
+                    end if;  
+                else
+                    P_pulse_rate := 20.0;
+                end if;
+                Print_an_Integer (Integer(P));
         end set_pulse;
     end EEG_state;
 
-    protected body int_handler is 
-        procedure Handler is
-            begin
+    -- protected body int_handler is 
+    --     procedure Handler is
+    --         begin
 
-        end Handler;
-    end int_handler;
+    --     end Handler;
+    -- end int_handler;
 
     ----------------------------------------------------------------------
     task body Electrodes  is 
         R: EEG_Samples_Type;
-        next_time: Time;
+        next_time: Time := big_bang;
         period : constant Time_Span := Milliseconds (300);
         sum: Natural:= 0;
     begin
-        next_time:= clock + period;
+        next_time:= next_time + period;
         loop
-            Starting_Notice ("Start_Electrodes"); 
+            -- Starting_Notice ("Start_Electrodes"); 
             Reading_Sensors (R);
             EEG_state.set_r_eeg(R);
             sum := 0;
@@ -147,7 +156,7 @@ package body add is
             else 
                 light(OFF);
             end if;
-            Finishing_Notice ("Finish_Electrodes");
+            -- Finishing_Notice ("Finish_Electrodes");
 
             delay until next_time;
             next_time:= next_time + period;
@@ -159,12 +168,12 @@ package body add is
     task body Eyes_Detection is
         Counter: Integer := 0;
         Current_R: Eyes_Samples_Type;
-        next_time: Time;
+        next_time: Time := big_bang;
         period : constant Time_Span := Milliseconds (150);
     begin
-        next_time := clock + period;
+        next_time:= next_time + period;
         loop
-            Starting_Notice ("Start_Eyes_Detection");
+            -- Starting_Notice ("Start_Eyes_Detection");
             Reading_EyesImage (Current_R);
             Eyes_state.set_r_eyes(Current_R);
             if (Current_R(left) < 20 and Current_R(right) < 20 ) then
@@ -177,7 +186,7 @@ package body add is
             elsif (Counter > 3 )then
                 Beep(3);
             end if;
-            Finishing_Notice ("Finish_Eyes_Detection");
+            -- Finishing_Notice ("Finish_Eyes_Detection");
 
             delay until next_time;
             next_time:= next_time + period;
@@ -190,19 +199,19 @@ package body add is
         R_eyes: Eyes_Samples_Type;
         R_eeg: EEG_Samples_Type;
         Pulse: Values_Pulse_Rate;
-        next_time: Time;
+        next_time: Time := big_bang;
         period : constant Time_Span := Milliseconds (1000);
     begin
-        next_time := clock + period;
+        next_time:= next_time + period;
         loop
-            Starting_Notice ("Start_Show_Info");
+            -- Starting_Notice ("Start_Show_Info");
             R_eyes := Eyes_state.get_r_eyes;
             R_eeg := EEG_state.get_r_eeg;
             Pulse := EEG_state.get_pulse;
-            Display_Eyes_Sample (R_eyes);
-            Display_Electrodes_Sample(R_eeg);
-            Display_Pulse_Rate (Pulse);
-            Finishing_Notice ("Finish_Info");
+            -- Display_Eyes_Sample (R_eyes);
+            -- Display_Electrodes_Sample(R_eeg);
+            -- Display_Pulse_Rate (Pulse);
+            -- Finishing_Notice ("Finish_Info");
 
             delay until next_time;
             next_time:= next_time + period;
@@ -212,14 +221,34 @@ package body add is
 
     ---------------------------------------------------------------------
     task body Pulse_measuring is
-        R_eeg: EEG_Samples_Type;
-        last_time: time;
+        pulse : float;
+        last_time: time := big_bang;
+        now : time;
         time_lapsed: Time_Span;
+        next_time: Time := big_bang;
+        period : constant Time_Span := Milliseconds (3000);
     begin
+        next_time := next_time + period;
         loop
+            now:= clock;
+            time_lapsed := now - last_time;
+
             Starting_Notice ("Start_Pulse_measuring");
-            R_eeg := EEG_state.get_r_eeg;
+
+            pulse := float(to_duration(time_lapsed));
+            if(pulse < 0.2) then
+                pulse := 300.0;
+            else
+                pulse := 60.0 / pulse;
+            end if;
+
+            EEG_state.set_pulse (Values_Pulse_Rate(pulse));
+
             Finishing_Notice ("Finish_Pulse_measuring");
+            
+            last_time := now;
+            delay until next_time;
+            next_time:= next_time + period;
 
         end loop;
 

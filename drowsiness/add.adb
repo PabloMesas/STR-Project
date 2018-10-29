@@ -7,9 +7,9 @@
 
 -- t- eyes                  -- OP-Eyes
 -- t- EEG                   -- OP-EEG
--- t- ShowInfo              --OP-Pulse
+-- t- ShowInfo              -- OP-Pulse
 -- t- Pulse
--- +RTI (Work in Progress)
+-- +RTI
 
 
 with Kernel.Serial_Output; use Kernel.Serial_Output;
@@ -21,56 +21,76 @@ with Devices; use Devices;
 --with Ada.Calendar; use Ada.Calendar;
 
 -- Packages needed to generate pulse interrupts       
--- with Ada.Interrupts.Names;
--- with Pulse_Interrupt; use Pulse_Interrupt;
+with Ada.Interrupts.Names;
+with Pulse_Interrupt; use Pulse_Interrupt;
 
 package body add is
+
+    -----------------------------------------------------------------------
+    ------------- Types
+    -----------------------------------------------------------------------
+    type e_state is new Integer range 0..2;
+    type eeg_state_type is new Natural range 0..1;
 
     -----------------------------------------------------------------------
     ------------- declaration of protected data
     -----------------------------------------------------------------------
     protected Eyes_state is
+        pragma priority (System.Priority'First + 6);
         function get_r_eyes return Eyes_Samples_Type;
         procedure set_r_eyes (r: Eyes_Samples_Type);
+        function get_eyes_state return e_state;
+        procedure set_eyes_state (s: e_state);
     private 
             R_eyes: Eyes_Samples_Type := (0, 0);
+            state: e_state:= 0;
     end Eyes_state;
 
     protected EEG_state is
+        pragma priority (System.Priority'First + 8);
         function get_r_eeg return EEG_Samples_Type;
         procedure set_r_eeg (r: EEG_Samples_Type);
+        function get_eeg_state return eeg_state_type;
+        procedure set_eeg_state (s: eeg_state_type) ;
         function get_pulse return Values_Pulse_Rate;
         procedure set_pulse (P: Values_Pulse_Rate);
     private 
             R_eeg: EEG_Samples_Type := (others=>0);
+            egg_state: eeg_state_type := 0;
             P_pulse_rate: Values_Pulse_Rate := 20.0;
     end EEG_state;
 
-    -- protected int_handler is
-    --     procedure Handler;
-    --     pragma Interrupt_Handler (Handler);
-    --     private
-    -- end int_handler;
-    
+    protected int_handler is
+        pragma Priority (Priority_Of_External_Interrupts_2);
+        procedure Handler;
+        pragma Attach_Handler (Handler , Ada.Interrupts.Names.External_Interrupt_2);
+        entry Esperar_Evento;
+    private
+        Llamada_Pendiente : Boolean := False; --barrera
+    end int_handler;    
     -----------------------------------------------------------------------
     ------------- declaration of tasks 
     -----------------------------------------------------------------------
 
     task Electrodes is 
-    pragma priority (System.Priority'First + 11);
+    pragma priority (System.Priority'First + 7);
     end Electrodes;
 
     task Eyes_Detection is 
-    pragma priority (System.Priority'First + 10);
+    pragma priority (System.Priority'First + 6);
     end Eyes_Detection; 
 
     task Show_info is
-    pragma priority (System.Priority'First + 8);
+    pragma priority (System.Priority'First + 3);
     end Show_info;
 
     task Pulse_measuring is
-    pragma priority (System.Priority'First + 12);
+    pragma priority (System.Priority'First + 8);
     end Pulse_measuring;
+
+    task Risk_Control is
+    pragma priority (System.Priority'First + 4);
+    end Risk_Control;
 
     ----------------------------------------------------------------------
     ------------- procedure exported 
@@ -95,6 +115,17 @@ package body add is
             begin
                 R_eyes := r;
         end set_r_eyes;
+
+        function get_eyes_state return e_state is
+            begin
+                return state;
+        end get_eyes_state;
+
+        procedure set_eyes_state (s: e_state) is
+            begin
+                state := s;
+        end set_eyes_state;
+
     end Eyes_state;
 
     protected body EEG_state is
@@ -107,6 +138,16 @@ package body add is
             begin
                 R_eeg := r;
         end set_r_eeg;
+
+        function get_eeg_state return eeg_state_type is
+            begin
+                return egg_state;
+        end get_eeg_state;
+
+        procedure set_eeg_state (s: eeg_state_type) is
+            begin
+                egg_state := s;
+        end set_eeg_state;
 
         function get_pulse return Values_Pulse_Rate is
             begin
@@ -124,40 +165,43 @@ package body add is
                 else
                     P_pulse_rate := 20.0;
                 end if;
-                Print_an_Integer (Integer(P));
         end set_pulse;
     end EEG_state;
 
-    -- protected body int_handler is 
-    --     procedure Handler is
-    --         begin
+    protected body int_handler is 
+        procedure Handler is
+        begin
+            Llamada_Pendiente := True;
+        end Handler;
 
-    --     end Handler;
-    -- end int_handler;
+        entry Esperar_Evento when Llamada_Pendiente is
+        begin  
+            Llamada_Pendiente := False;
+        end Esperar_Evento;
+     end int_handler;
 
     ----------------------------------------------------------------------
     task body Electrodes  is 
         R: EEG_Samples_Type;
         next_time: Time := big_bang;
-        period : constant Time_Span := Milliseconds (300);
         sum: Natural:= 0;
+        period : constant Time_Span := Milliseconds (300);
     begin
         next_time:= next_time + period;
         loop
-            -- Starting_Notice ("Start_Electrodes"); 
+            Starting_Notice ("Start_Electrodes"); 
             Reading_Sensors (R);
             EEG_state.set_r_eeg(R);
             sum := 0;
             for i in 7..10 loop
                 sum := sum + Natural(R(EEG_Samples_Index(i)));
             end loop;
-            if ( sum < 20 ) then
-                light(ON);
-            else 
-                light(OFF);
+            if ( sum < 20 ) then 
+                EEG_state.set_eeg_state(eeg_state_type(0));
+            else
+                EEG_state.set_eeg_state(eeg_state_type(1));
             end if;
-            -- Finishing_Notice ("Finish_Electrodes");
-
+            Finishing_Notice ("Finish_Electrodes");
             delay until next_time;
             next_time:= next_time + period;
         end loop;
@@ -166,28 +210,31 @@ package body add is
 
     ---------------------------------------------------------------------
     task body Eyes_Detection is
-        Counter: Integer := 0;
         Current_R: Eyes_Samples_Type;
         next_time: Time := big_bang;
+        counter: Integer := 0;
         period : constant Time_Span := Milliseconds (150);
     begin
         next_time:= next_time + period;
         loop
-            -- Starting_Notice ("Start_Eyes_Detection");
+            Starting_Notice ("Start_Eyes_Detection");
             Reading_EyesImage (Current_R);
             Eyes_state.set_r_eyes(Current_R);
+
             if (Current_R(left) < 20 and Current_R(right) < 20 ) then
                 Counter := Counter + 1;
-            else Counter := 0;
-            end if;
-
-            if (Counter = 2 ) then
-                Beep(2);
-            elsif (Counter > 3 )then
-                Beep(3);
-            end if;
-            -- Finishing_Notice ("Finish_Eyes_Detection");
-
+                if (counter = 2) then 
+                    Eyes_state.set_eyes_state(1);
+                elsif (counter > 3 ) then
+                    Eyes_state.set_eyes_state(2);
+                end if;
+            else 
+                Counter := 0;
+                Eyes_state.set_eyes_state(0);
+            end if;               
+            
+            --Display_Eyes_Sample(Current_R);
+            Finishing_Notice ("Finish_Eyes_Detection");
             delay until next_time;
             next_time:= next_time + period;
         end loop;
@@ -204,16 +251,16 @@ package body add is
     begin
         next_time:= next_time + period;
         loop
-            -- Starting_Notice ("Start_Show_Info");
+            delay until next_time;
+            Starting_Notice ("Start_Show_Info");
             R_eyes := Eyes_state.get_r_eyes;
             R_eeg := EEG_state.get_r_eeg;
             Pulse := EEG_state.get_pulse;
-            -- Display_Eyes_Sample (R_eyes);
-            -- Display_Electrodes_Sample(R_eeg);
-            -- Display_Pulse_Rate (Pulse);
-            -- Finishing_Notice ("Finish_Info");
+            Display_Eyes_Sample (R_eyes);
+            Display_Electrodes_Sample(R_eeg);
+            Display_Pulse_Rate (Pulse);
+            Finishing_Notice ("Finish_Info");
 
-            delay until next_time;
             next_time:= next_time + period;
         end loop;
 
@@ -225,42 +272,116 @@ package body add is
         last_time: time := big_bang;
         now : time;
         time_lapsed: Time_Span;
-        next_time: Time := big_bang;
-        period : constant Time_Span := Milliseconds (3000);
     begin
-        next_time := next_time + period;
         loop
+            int_handler.Esperar_Evento;
+            Starting_Notice ("Start_Pulse_measuring");
             now:= clock;
             time_lapsed := now - last_time;
-
-            Starting_Notice ("Start_Pulse_measuring");
-
             pulse := float(to_duration(time_lapsed));
+
             if(pulse < 0.2) then
                 pulse := 300.0;
             else
                 pulse := 60.0 / pulse;
             end if;
 
-            EEG_state.set_pulse (Values_Pulse_Rate(pulse));
-
-            Finishing_Notice ("Finish_Pulse_measuring");
-            
+            EEG_state.set_pulse (Values_Pulse_Rate(pulse));            
             last_time := now;
-            delay until next_time;
-            next_time:= next_time + period;
+            Finishing_Notice ("Finish_Pulse_measuring");
 
         end loop;
 
     end Pulse_measuring;
 
+    task body Risk_Control is
+        eyes: e_state;
+        R_eeg: EEG_Samples_Type;
+        Pulse: Values_Pulse_Rate;
+        Sign_Counter: Integer := 0;
+        type cinco is new Integer range 1..2;
+        blink_counter: cinco := 1;
+        light_state: Light_States := OFF; 
+        atention: eeg_state_type := 0;
+        next_time: Time := big_bang;
+        period : constant Time_Span := Milliseconds (250);
+    begin
+        next_time:= next_time + period;
+        loop
+            delay until next_time;
+            Starting_Notice ("Start_Risk_control");
 
+            eyes:= Eyes_state.get_eyes_state;
+            R_eeg := EEG_state.get_r_eeg;
+            Pulse := EEG_state.get_pulse;
+            atention := EEG_state.get_eeg_state;
+            
+            -------Contador de Sintomas
+            if  (eyes > 0 ) then 
+                Sign_Counter := Sign_Counter + 1;
+            end if;
+            if ( atention = 0 ) then
+                Sign_Counter := Sign_Counter + 1;
+            end if;
+            if (Pulse <= 50.0) then
+                Sign_Counter := Sign_Counter + 1;
+            end if;
+            -----------------------------
+            --------Acciones del sistema
+            if (Sign_Counter = 1) then
+                if (eyes = 1 ) then
+                    Beep(2);
+                elsif (eyes = 2 )then
+                    Beep(3);
+                end if;
+
+                if ( atention = 0 ) then
+                    light_state := ON;
+                else 
+                    light_state := OFF;
+                end if;
+
+            elsif (Sign_Counter = 2) then
+                Beep(4);
+                if (blink_counter = 1) then
+                    if (light_state = ON) then
+                        light_state := OFF;
+                    else
+                        light_state := ON;
+                    end if;
+                end if;
+
+                blink_counter := blink_counter + 1;
+
+            elsif (Sign_Counter >= 3) then
+                Activate_Automatic_Driving;
+                Beep(5);
+                 if (blink_counter = 1) then
+                    if (light_state = ON) then
+                        light_state := OFF;
+                    else
+                        light_state := ON;
+                    end if;
+                end if;
+                blink_counter := blink_counter + 1;
+
+            else 
+                light_state := OFF;
+            end if;  
+
+            if ( Sign_Counter < 2 ) then 
+                blink_counter := 1;
+            end if;
+            light(light_state);
+
+            Sign_Counter := 0;            
+            Finishing_Notice ("Finish_Risk_control");
+
+            next_time:= next_time + period;
+        end loop;
+
+    end Risk_Control;
 
 begin
    null;
 end add;
-
-
-
-
-

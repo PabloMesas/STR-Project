@@ -1,2 +1,2 @@
-# STR-Proyect
-Proyect for STR
+# STR-Project
+Project for STR

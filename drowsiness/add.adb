@@ -189,7 +189,7 @@ package body add is
     begin
         next_time:= next_time + period;
         loop
-            Starting_Notice ("Start_Electrodes"); 
+            --Starting_Notice ("Start_Electrodes"); 
             Reading_Sensors (R);
             EEG_state.set_r_eeg(R);
             sum := 0;
@@ -201,7 +201,7 @@ package body add is
             else
                 EEG_state.set_eeg_state(eeg_state_type(1));
             end if;
-            Finishing_Notice ("Finish_Electrodes");
+            --Finishing_Notice ("Finish_Electrodes");
             delay until next_time;
             next_time:= next_time + period;
         end loop;
@@ -217,7 +217,7 @@ package body add is
     begin
         next_time:= next_time + period;
         loop
-            Starting_Notice ("Start_Eyes_Detection");
+            --Starting_Notice ("Start_Eyes_Detection");
             Reading_EyesImage (Current_R);
             Eyes_state.set_r_eyes(Current_R);
 
@@ -234,7 +234,7 @@ package body add is
             end if;               
             
             --Display_Eyes_Sample(Current_R);
-            Finishing_Notice ("Finish_Eyes_Detection");
+            --Finishing_Notice ("Finish_Eyes_Detection");
             delay until next_time;
             next_time:= next_time + period;
         end loop;
@@ -252,14 +252,14 @@ package body add is
         next_time:= next_time + period;
         loop
             delay until next_time;
-            Starting_Notice ("Start_Show_Info");
+            --Starting_Notice ("Start_Show_Info");
             R_eyes := Eyes_state.get_r_eyes;
             R_eeg := EEG_state.get_r_eeg;
             Pulse := EEG_state.get_pulse;
-            Display_Eyes_Sample (R_eyes);
-            Display_Electrodes_Sample(R_eeg);
-            Display_Pulse_Rate (Pulse);
-            Finishing_Notice ("Finish_Info");
+            --Display_Eyes_Sample (R_eyes);
+            --Display_Electrodes_Sample(R_eeg);
+            --Display_Pulse_Rate (Pulse);
+            --Finishing_Notice ("Finish_Info");
 
             next_time:= next_time + period;
         end loop;
@@ -275,7 +275,7 @@ package body add is
     begin
         loop
             int_handler.Esperar_Evento;
-            Starting_Notice ("Start_Pulse_measuring");
+            --Starting_Notice ("Start_Pulse_measuring");
             now:= clock;
             time_lapsed := now - last_time;
             pulse := float(to_duration(time_lapsed));
@@ -288,7 +288,7 @@ package body add is
 
             EEG_state.set_pulse (Values_Pulse_Rate(pulse));            
             last_time := now;
-            Finishing_Notice ("Finish_Pulse_measuring");
+            --Finishing_Notice ("Finish_Pulse_measuring");
 
         end loop;
 
@@ -315,6 +315,8 @@ package body add is
             R_eeg := EEG_state.get_r_eeg;
             Pulse := EEG_state.get_pulse;
             atention := EEG_state.get_eeg_state;
+            Display_Electrodes_Sample(R_eeg);
+            Display_Pulse_Rate (Pulse);
             
             -------Contador de Sintomas
             if  (eyes > 0 ) then 

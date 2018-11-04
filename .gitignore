@@ -2,7 +2,8 @@
 *.ali
 *.map
 *.nm
-
-drowsiness/main
 *.ods
-Tabla de Desviacion Local.pdf
+*.pdf
+drowsiness/main
+
+

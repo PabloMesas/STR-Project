@@ -289,14 +289,13 @@ package body add is
     end Pulse_measuring;
 
     task body Risk_Control is
-        eyes: e_state;
-        R_eeg: EEG_Samples_Type;
+        eyes: e_state; 
+        atention: eeg_state_type := 0;
         Pulse: Values_Pulse_Rate;
         Sign_Counter: Integer := 0;
-        type cinco is new Integer range 1..2;
-        blink_counter: cinco := 1;
-        light_state: Light_States := OFF; 
-        atention: eeg_state_type := 0;
+        type dos is new Integer range 1..2;
+        blink_counter: dos := 1;
+        light_state: Light_States := OFF;
         next_time: Time := big_bang;
         period : constant Time_Span := Milliseconds (250);
     begin
@@ -306,9 +305,8 @@ package body add is
             Starting_Notice ("Start_Risk_control");
 
             eyes:= Eyes_state.get_eyes_state;
-            R_eeg := EEG_state.get_r_eeg;
-            Pulse := EEG_state.get_pulse;
             atention := EEG_state.get_eeg_state;
+            Pulse := EEG_state.get_pulse;
             
             -------Contador de Sintomas
             if  (eyes > 0 ) then 

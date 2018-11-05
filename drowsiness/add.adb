@@ -25,6 +25,8 @@ package body add is
     -----------------------------------------------------------------------
     type e_state is new Integer range 0..2;
     type eeg_state_type is new Natural range 0..1;
+    estados_luz: constant:= 2;
+    type dos is mod estados_luz;
 
     -----------------------------------------------------------------------
     ------------- declaration of protected data
@@ -227,7 +229,6 @@ package body add is
                 Eyes_state.set_eyes_state(0);
             end if;               
             
-            --Display_Eyes_Sample(Current_R);
             Finishing_Notice ("Finish_Eyes_Detection");
             delay until next_time;
             next_time:= next_time + period;
@@ -289,12 +290,13 @@ package body add is
     end Pulse_measuring;
 
     task body Risk_Control is
+        --R_eyes: Eyes_Samples_Type;
+        --R_eeg: EEG_Samples_Type;
         eyes: e_state; 
         atention: eeg_state_type := 0;
         Pulse: Values_Pulse_Rate;
         Sign_Counter: Integer := 0;
-        --type dos is new Integer range 1..2;
-        blink_counter: Integer := 1;
+        blink_counter: dos := 1;
         light_state: Light_States := OFF;
         next_time: Time := big_bang;
         period : constant Time_Span := Milliseconds (250);
@@ -304,9 +306,14 @@ package body add is
             delay until next_time;
             Starting_Notice ("Start_Risk_control");
 
+            --R_eyes := Eyes_state.get_r_eyes;
+            --R_eeg := EEG_state.get_r_eeg;
             eyes:= Eyes_state.get_eyes_state;
             atention := EEG_state.get_eeg_state;
             Pulse := EEG_state.get_pulse;
+            --Display_Eyes_Sample (R_eyes);
+            --Display_Electrodes_Sample(R_eeg);
+            --Display_Pulse_Rate (Pulse);
             
             -------Contador de Sintomas
             if  (eyes > 0 ) then 
@@ -335,7 +342,7 @@ package body add is
 
             elsif (Sign_Counter = 2) then
                 Beep(4);
-                if (blink_counter = 0) then
+                if (blink_counter = 1) then
                     if (light_state = ON) then
                         light_state := OFF;
                     else
@@ -343,26 +350,26 @@ package body add is
                     end if;
                 end if;
 
-                blink_counter := (blink_counter + 1) mod 2;
+                blink_counter := dos((blink_counter + 1));
 
             elsif (Sign_Counter >= 3) then
                 Activate_Automatic_Driving;
                 Beep(5);
-                 if (blink_counter = 0) then
+                 if (blink_counter = 1) then
                     if (light_state = ON) then
                         light_state := OFF;
                     else
                         light_state := ON;
                     end if;
                 end if;
-                blink_counter := (blink_counter + 1) mod 2;
+                blink_counter := dos((blink_counter + 1));
 
             else 
                 light_state := OFF;
             end if;  
 
             if ( Sign_Counter < 2 ) then 
-                blink_counter := 0;
+                blink_counter := 1;
             end if;
             light(light_state);
 

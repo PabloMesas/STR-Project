@@ -1,3 +1,4 @@
+
 --------------------------------------------
 -----             STR 2018             -----
 -----       Pablo Mesas Lafarga        -----
@@ -24,6 +25,8 @@ package body add is
     -----------------------------------------------------------------------
     type e_state is new Integer range 0..2;
     type eeg_state_type is new Natural range 0..1;
+    estados_luz: constant:= 2;
+    type dos is mod estados_luz;
 
     -----------------------------------------------------------------------
     ------------- declaration of protected data
@@ -226,7 +229,6 @@ package body add is
                 Eyes_state.set_eyes_state(0);
             end if;               
             
-            --Display_Eyes_Sample(Current_R);
             --Finishing_Notice ("Finish_Eyes_Detection");
             delay until next_time;
             next_time:= next_time + period;
@@ -249,9 +251,9 @@ package body add is
             R_eyes := Eyes_state.get_r_eyes;
             R_eeg := EEG_state.get_r_eeg;
             Pulse := EEG_state.get_pulse;
-            --Display_Eyes_Sample (R_eyes);
-            --Display_Electrodes_Sample(R_eeg);
-            --Display_Pulse_Rate (Pulse);
+            Display_Eyes_Sample (R_eyes);
+            Display_Electrodes_Sample(R_eeg);
+            Display_Pulse_Rate (Pulse);
             --Finishing_Notice ("Finish_Info");
 
             next_time:= next_time + period;
@@ -294,7 +296,6 @@ package body add is
         atention: eeg_state_type := 0;
         Pulse: Values_Pulse_Rate;
         Sign_Counter: Integer := 0;
-        type dos is new Integer range 1..2;
         blink_counter: dos := 1;
         light_state: Light_States := OFF;
         next_time: Time := big_bang;
@@ -305,13 +306,13 @@ package body add is
             delay until next_time;
             Starting_Notice ("Start_Risk_control");
 
+            R_eyes := Eyes_state.get_r_eyes;
+            R_eeg := EEG_state.get_r_eeg;
             eyes:= Eyes_state.get_eyes_state;
             atention := EEG_state.get_eeg_state;
             Pulse := EEG_state.get_pulse;
-            --R_eyes := Eyes_state.get_r_eyes;
-            --R_eeg := EEG_state.get_r_eeg;
-            --Display_Eyes_Sample (R_eyes);
-            --Display_Electrodes_Sample(R_eeg);
+            Display_Eyes_Sample (R_eyes);
+            Display_Electrodes_Sample(R_eeg);
             Display_Pulse_Rate (Pulse);
             
             -------Contador de Sintomas
@@ -349,7 +350,7 @@ package body add is
                     end if;
                 end if;
 
-                blink_counter := blink_counter + 1;
+                blink_counter := dos((blink_counter + 1));
 
             elsif (Sign_Counter >= 3) then
                 Activate_Automatic_Driving;
@@ -361,7 +362,7 @@ package body add is
                         light_state := ON;
                     end if;
                 end if;
-                blink_counter := blink_counter + 1;
+                blink_counter := dos((blink_counter + 1));
 
             else 
                 light_state := OFF;

@@ -9,16 +9,16 @@ package pulse_interrupt is
     ------ declaracion de procedimientos de acceso a DISPOSITIVOS E/S  --
     ---------------------------------------------------------------------
 
-   Interr_1: constant Time_Span := To_Time_Span (1.3);
-   Interr_2: constant Time_Span := To_Time_Span (1.3);
-   Interr_3: constant Time_Span := To_Time_Span (1.9);
-   Interr_4: constant Time_Span := To_Time_Span (1.9);
-   Interr_5: constant Time_Span := To_Time_Span (1.9);
-   Interr_6: constant Time_Span := To_Time_Span (1.3);
-   Interr_7: constant Time_Span := To_Time_Span (1.3);
-   Interr_8: constant Time_Span := To_Time_Span (1.4);
-   Interr_9: constant Time_Span := To_Time_Span (1.4);
-   Interr_10: constant Time_Span := To_Time_Span (1.1);
+   Interr_1: constant Time_Span := To_Time_Span (0.5);
+   Interr_2: constant Time_Span := To_Time_Span (0.5);
+   Interr_3: constant Time_Span := To_Time_Span (0.7);
+   Interr_4: constant Time_Span := To_Time_Span (0.9);
+   Interr_5: constant Time_Span := To_Time_Span (0.9);
+   Interr_6: constant Time_Span := To_Time_Span (0.8);
+   Interr_7: constant Time_Span := To_Time_Span (0.7);
+   Interr_8: constant Time_Span := To_Time_Span (0.7);
+   Interr_9: constant Time_Span := To_Time_Span (0.6);
+   Interr_10: constant Time_Span := To_Time_Span (0.6);
 
 
    --------------------------------------------------------------------------

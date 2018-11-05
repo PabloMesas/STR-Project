@@ -13,7 +13,7 @@ package body devices is
     WCET_Light: constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds(5);
     WCET_Automatic_Driving: constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds(10);
 
-    EYES_REACTION_WHEN_BEEP: constant integer := 2;
+    EYES_REACTION_WHEN_BEEP: constant integer := 1;
     -- 0 = no reaction
     -- 1 = short reaction
     -- 2 = large reaction 

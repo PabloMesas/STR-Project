@@ -5,6 +5,12 @@
 -----    Alejandro Mendez Fernandez    -----
 --------------------------------------------
 
+-- t- eyes                  -- OP-Eyes
+-- t- EEG                   -- OP-EEG
+-- t- ShowInfo              -- OP-Pulse
+-- t- Pulse
+-- +RTI
+
 
 with Kernel.Serial_Output; use Kernel.Serial_Output;
 with Ada.Real_Time; use Ada.Real_Time;
@@ -19,20 +25,46 @@ with Ada.Interrupts.Names;
 with Pulse_Interrupt; use Pulse_Interrupt;
 
 package body add is
+    -----------------------------------------------------------------------
+    ------------- Constant
+    -----------------------------------------------------------------------
+    -- Prioridades Tareas:
+    -- (Revisar prioridades de techo de los obj. protegidos despues de modificar estos) 
+    priority_Electrodes         : constant := 7;
+    priority_Eyes_Detection     : constant := 6;
+    priority_Show_info          : constant := 3;
+    priority_Pulse_measuring    : constant := 8;
+    priority_Risk_Control       : constant := 4;
+    priority_Distance_Detection : constant := 5;
+
+    -- Prioridades de techo Objetos protegidos:
+    -- (Revisar estas prioridades si se han alterado las prioridades de las tareas)
+    priority_P_CarDistance_state : constant := 5;
+    priority_P_Eyes_state        : constant := 6;
+    priority_P_EEG_state         : constant := 8;
+
+    estados_luz : constant := 2;
 
     -----------------------------------------------------------------------
     ------------- Types
     -----------------------------------------------------------------------
     type e_state is new Integer range 0..2;
     type eeg_state_type is new Natural range 0..1;
-    estados_luz: constant:= 2;
     type dos is mod estados_luz;
 
     -----------------------------------------------------------------------
     ------------- declaration of protected data
     -----------------------------------------------------------------------
+    protected CarDistance_state is
+        pragma priority (System.Priority'First + priority_P_CarDistance_state);
+        function get return Values_Car_Distance;
+        procedure set (D: Values_Car_Distance);
+    private 
+        state: Values_Car_Distance:= 100;
+    end CarDistance_state;
+
     protected Eyes_state is
-        pragma priority (System.Priority'First + 6);
+        pragma priority (System.Priority'First + priority_P_Eyes_state);
         function get_r_eyes return Eyes_Samples_Type;
         procedure set_r_eyes (r: Eyes_Samples_Type);
         function get_eyes_state return e_state;
@@ -43,7 +75,7 @@ package body add is
     end Eyes_state;
 
     protected EEG_state is
-        pragma priority (System.Priority'First + 8);
+        pragma priority (System.Priority'First + priority_P_EEG_state);
         function get_r_eeg return EEG_Samples_Type;
         procedure set_r_eeg (r: EEG_Samples_Type);
         function get_eeg_state return eeg_state_type;
@@ -69,24 +101,28 @@ package body add is
     -----------------------------------------------------------------------
 
     task Electrodes is 
-    pragma priority (System.Priority'First + 7);
+    pragma priority (System.Priority'First + priority_Electrodes);
     end Electrodes;
 
     task Eyes_Detection is 
-    pragma priority (System.Priority'First + 6);
+    pragma priority (System.Priority'First + priority_Eyes_Detection);
     end Eyes_Detection; 
 
     task Show_info is
-    pragma priority (System.Priority'First + 3);
+    pragma priority (System.Priority'First + priority_Show_info);
     end Show_info;
 
     task Pulse_measuring is
-    pragma priority (System.Priority'First + 8);
+    pragma priority (System.Priority'First + priority_Pulse_measuring);
     end Pulse_measuring;
 
     task Risk_Control is
-    pragma priority (System.Priority'First + 4);
+    pragma priority (System.Priority'First + priority_Risk_Control);
     end Risk_Control;
+
+    task Distance_Detection is
+    pragma priority (System.Priority'First + priority_Distance_Detection);
+    end Distance_Detection;
 
     ----------------------------------------------------------------------
     ------------- procedure exported 
@@ -100,6 +136,18 @@ package body add is
     -----------------------------------------------------------------------
     ------------- definition of protected data
     -----------------------------------------------------------------------
+    protected body CarDistance_state is
+        function get return Values_Car_Distance is
+            begin
+                return state;
+        end get;
+
+        procedure set (D: Values_Car_Distance) is
+            begin
+                state := D;
+        end set;
+
+    end CarDistance_state;
 
     protected body Eyes_state is
         function get_r_eyes return Eyes_Samples_Type is
@@ -177,6 +225,8 @@ package body add is
      end int_handler;
 
     ----------------------------------------------------------------------
+    ------------- definition of tasks
+    -----------------------------------------------------------------------
     task body Electrodes  is 
         R: EEG_Samples_Type;
         next_time: Time := big_bang;
@@ -185,7 +235,7 @@ package body add is
     begin
         next_time:= next_time + period;
         loop
-            --Starting_Notice ("Start_Electrodes"); 
+            Starting_Notice ("Start_Electrodes"); 
             Reading_Sensors (R);
             EEG_state.set_r_eeg(R);
             sum := 0;
@@ -197,7 +247,7 @@ package body add is
             else
                 EEG_state.set_eeg_state(eeg_state_type(1));
             end if;
-            --Finishing_Notice ("Finish_Electrodes");
+            Finishing_Notice ("Finish_Electrodes");
             delay until next_time;
             next_time:= next_time + period;
         end loop;
@@ -213,7 +263,7 @@ package body add is
     begin
         next_time:= next_time + period;
         loop
-            --Starting_Notice ("Start_Eyes_Detection");
+            Starting_Notice ("Start_Eyes_Detection");
             Reading_EyesImage (Current_R);
             Eyes_state.set_r_eyes(Current_R);
 
@@ -229,7 +279,8 @@ package body add is
                 Eyes_state.set_eyes_state(0);
             end if;               
             
-            --Finishing_Notice ("Finish_Eyes_Detection");
+            --Display_Eyes_Sample(Current_R);
+            Finishing_Notice ("Finish_Eyes_Detection");
             delay until next_time;
             next_time:= next_time + period;
         end loop;
@@ -241,20 +292,23 @@ package body add is
         R_eyes: Eyes_Samples_Type;
         R_eeg: EEG_Samples_Type;
         Pulse: Values_Pulse_Rate;
+	Car_Distance: Values_Car_Distance;
         next_time: Time := big_bang;
         period : constant Time_Span := Milliseconds (1000);
     begin
         next_time:= next_time + period;
         loop
             delay until next_time;
-            --Starting_Notice ("Start_Show_Info");
+            Starting_Notice ("Start_Show_Info");
             R_eyes := Eyes_state.get_r_eyes;
             R_eeg := EEG_state.get_r_eeg;
             Pulse := EEG_state.get_pulse;
+            Car_Distance := CarDistance_state.get;
             Display_Eyes_Sample (R_eyes);
             Display_Electrodes_Sample(R_eeg);
             Display_Pulse_Rate (Pulse);
-            --Finishing_Notice ("Finish_Info");
+            Display_Car_Distance(Car_Distance);
+            Finishing_Notice ("Finish_Show_Info");
 
             next_time:= next_time + period;
         end loop;
@@ -270,7 +324,7 @@ package body add is
     begin
         loop
             int_handler.Esperar_Evento;
-            --Starting_Notice ("Start_Pulse_measuring");
+            Starting_Notice ("Start_Pulse_measuring");
             now:= clock;
             time_lapsed := now - last_time;
             pulse := float(to_duration(time_lapsed));
@@ -283,21 +337,22 @@ package body add is
 
             EEG_state.set_pulse (Values_Pulse_Rate(pulse));            
             last_time := now;
-            --Finishing_Notice ("Finish_Pulse_measuring");
+            Finishing_Notice ("Finish_Pulse_measuring");
 
         end loop;
 
     end Pulse_measuring;
 
+    ---------------------------------------------------------------------
     task body Risk_Control is
-        R_eyes: Eyes_Samples_Type;
+        eyes: e_state;
         R_eeg: EEG_Samples_Type;
-        eyes: e_state; 
-        atention: eeg_state_type := 0;
         Pulse: Values_Pulse_Rate;
+        Car_Distance: Values_Car_Distance;
         Sign_Counter: Integer := 0;
         blink_counter: dos := 1;
-        light_state: Light_States := OFF;
+        light_state: Light_States := OFF; 
+        atention: eeg_state_type := 0;
         next_time: Time := big_bang;
         period : constant Time_Span := Milliseconds (250);
     begin
@@ -306,14 +361,11 @@ package body add is
             delay until next_time;
             Starting_Notice ("Start_Risk_control");
 
-            R_eyes := Eyes_state.get_r_eyes;
-            R_eeg := EEG_state.get_r_eeg;
+            Car_Distance := CarDistance_state.get;
             eyes:= Eyes_state.get_eyes_state;
-            atention := EEG_state.get_eeg_state;
+            R_eeg := EEG_state.get_r_eeg;
             Pulse := EEG_state.get_pulse;
-            Display_Eyes_Sample (R_eyes);
-            Display_Electrodes_Sample(R_eeg);
-            Display_Pulse_Rate (Pulse);
+            atention := EEG_state.get_eeg_state;
             
             -------Contador de Sintomas
             if  (eyes > 0 ) then 
@@ -323,6 +375,9 @@ package body add is
                 Sign_Counter := Sign_Counter + 1;
             end if;
             if (Pulse <= 50.0) then
+                Sign_Counter := Sign_Counter + 1;
+            end if;
+            if (Car_Distance <= 85) then
                 Sign_Counter := Sign_Counter + 1;
             end if;
             -----------------------------
@@ -339,6 +394,10 @@ package body add is
                 else 
                     light_state := OFF;
                 end if;
+                
+                if (Car_Distance <= 85) then
+                    Beep(2);
+                end if;
 
             elsif (Sign_Counter = 2) then
                 Beep(4);
@@ -350,7 +409,7 @@ package body add is
                     end if;
                 end if;
 
-                blink_counter := dos((blink_counter + 1));
+                blink_counter := dos(blink_counter + 1);
 
             elsif (Sign_Counter >= 3) then
                 Activate_Automatic_Driving;
@@ -362,14 +421,14 @@ package body add is
                         light_state := ON;
                     end if;
                 end if;
-                blink_counter := dos((blink_counter + 1));
+                blink_counter := dos(blink_counter + 1);
 
             else 
                 light_state := OFF;
             end if;  
 
             if ( Sign_Counter < 2 ) then 
-                blink_counter := 1;
+                blink_counter := 0;
             end if;
             light(light_state);
 
@@ -380,6 +439,26 @@ package body add is
         end loop;
 
     end Risk_Control;
+
+    ---------------------------------------------------------------------
+    task body Distance_Detection is
+        value : Values_Car_Distance;
+        next_time : Time := big_bang;
+        period : constant Time_Span := Milliseconds (380);
+    begin
+        next_time:= next_time + period;
+        loop
+            delay until next_time;
+            Starting_Notice ("Start_CarDistance_measuring");
+            Reading_CarDistance(value);
+            CarDistance_state.set(value);
+            Finishing_Notice ("Finish_CarDistance_measuring");
+
+            next_time:= next_time + period;
+        end loop;
+    end Distance_Detection;
+
+    ---------------------------------------------------------------------
 
 begin
    null;

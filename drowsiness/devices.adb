@@ -6,6 +6,7 @@ with tools; use tools;
 
 package body devices is
 
+    WCET_Car_Distance: constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds(10);
     WCET_Eyes_Image: constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds(40);
     WCET_EEG: constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds(30);
     WCET_Display: constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds(15);
@@ -13,7 +14,7 @@ package body devices is
     WCET_Light: constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds(5);
     WCET_Automatic_Driving: constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds(10);
 
-    EYES_REACTION_WHEN_BEEP: constant integer := 0;
+    EYES_REACTION_WHEN_BEEP: constant integer := 1;
     -- 0 = no reaction
     -- 1 = short reaction
     -- 2 = large reaction 
@@ -34,20 +35,14 @@ package body devices is
        (7,7,7,7,7,7,7,7,7,7),(7,7,7,7,7,7,7,7,7,7),
        (7,7,7,7,7,7,7,7,7,7),(7,7,7,7,7,7,7,7,7,7),
        (7,7,7,7,7,7,7,7,7,7),(8,8,8,8,8,8,8,8,8,8),
-       (4,4,4,4,4,4,4,4,4,4),(4,4,4,4,4,4,4,4,4,4),
-       (4,4,4,4,4,4,4,4,4,4),(4,4,4,4,4,4,4,4,4,4),
+       (8,8,8,8,8,8,8,8,8,8),(8,8,8,8,8,8,8,8,8,8),
+       (8,8,8,8,8,8,8,8,8,8),(8,8,8,8,8,8,8,8,8,8),
 
        (4,4,4,4,4,4,4,4,4,4),(4,4,4,4,4,4,4,4,4,4),
-       (4,4,4,4,4,4,4,4,4,4),(4,4,4,4,4,4,4,4,4,4),
-       (1,1,1,1,1,1,1,1,1,1),(2,2,2,2,2,2,2,2,2,2),
-       (2,2,2,2,2,2,2,2,2,2),(3,3,3,3,3,3,3,3,3,3),
-       (3,3,3,3,3,3,3,3,3,3),(3,3,3,3,3,3,3,3,3,3),
-
-       (1,1,1,1,1,1,1,1,1,1),(1,1,1,1,1,1,1,1,1,1),
-       (1,1,1,1,1,1,1,1,1,1),(2,2,2,2,2,2,2,2,2,2),
-       (2,2,2,2,2,2,2,2,2,2),(2,2,2,2,2,2,2,2,2,2),
-       (2,2,2,2,2,2,2,2,2,2),(3,3,3,3,3,3,3,3,3,3),
-       (3,3,3,3,3,3,3,3,3,3),(3,3,3,3,3,3,3,3,3,3),
+       (4,4,4,4,4,4,4,4,4,4),(5,5,5,5,5,5,5,5,5,5),
+       (5,5,5,5,5,5,5,5,5,5),(6,6,6,6,6,6,6,6,6,6),
+       (6,6,6,6,6,6,6,6,6,6),(6,6,6,6,6,6,6,6,6,6),
+       (6,6,6,6,6,6,6,6,6,6),(6,6,6,6,6,6,6,6,6,6),
 
        (1,1,1,1,1,1,1,1,1,1),(1,1,1,1,1,1,1,1,1,1),
        (1,1,1,1,1,1,1,1,1,1),(2,2,2,2,2,2,2,2,2,2),
@@ -59,7 +54,13 @@ package body devices is
        (1,1,1,1,1,1,1,1,1,1),(2,2,2,2,2,2,2,2,2,2),
        (2,2,2,2,2,2,2,2,2,2),(2,2,2,2,2,2,2,2,2,2),
        (2,2,2,2,2,2,2,2,2,2),(3,3,3,3,3,3,3,3,3,3),
-       (3,3,3,3,3,3,3,3,3,3),(3,3,3,3,3,3,3,3,3,3) );
+       (3,3,3,3,3,3,3,3,3,3),(3,3,3,3,3,3,3,3,3,3),
+
+       (4,4,4,4,4,4,4,4,4,4),(4,4,4,4,4,4,4,4,4,4),
+       (4,4,4,4,4,4,4,4,4,4),(5,5,5,5,5,5,5,5,5,5),
+       (5,5,5,5,5,5,5,5,5,5),(7,7,7,7,7,7,7,7,7,7),
+       (7,7,7,7,7,7,7,7,7,7),(7,7,7,7,7,7,7,7,7,7),
+       (7,7,7,7,7,7,7,7,7,7),(7,7,7,7,7,7,7,7,7,7) );
 
     end Sensores_Electrodos;
 
@@ -99,10 +100,10 @@ package body devices is
     private
       i: Indice_Secuencia_EyesImage := 1;
       Secuencia: tipo_Secuencia_EyesImage :=
-                ((80,85),(70,70),(80,85),(80,85),(05,05),
-                 (10,10),(10,10),( 0, 0),( 0, 0),( 0, 0),
+                ((85,85),(70,70),(85,85),(85,85),(05,05),
+                 (85,85),(85,85),(20,20),(85,85),(85,85),
  
-                 (10,10),(10,10),( 0, 0),( 0, 0),( 0, 0),
+                 (70,70),(60,60),(60,60),(40,40),(40,40),
                  (10,10),(10,10),( 0, 0),( 0, 0),( 0, 0),
 
                  ( 0, 0),( 0, 0),( 0, 0),( 0, 0),( 0, 0),
@@ -153,6 +154,43 @@ package body devices is
 
     end Lectura_EyesImage;
 
+   ---------------------------------------------------------------------
+   -- Procedures to access distance sensor
+   ---------------------------------------------------------------------
+    cantidad_datos_CarDistance: constant := 50;
+    type Indice_Secuencia_CarDistance is mod cantidad_datos_CarDistance;
+    type tipo_Secuencia_CarDistance is array (Indice_Secuencia_CarDistance) of Values_Car_Distance;
+
+    protected Lectura_DistanceSensor is
+       procedure Reading_CarDistance (D: out Values_Car_Distance);
+    private
+      i: Indice_Secuencia_CarDistance := 1;
+      Secuencia: tipo_Secuencia_CarDistance :=
+                ( 90, 87, 81, 77, 86, 89, 94,100,100,100,
+                 100, 29, 25, 22, 19, 16, 14, 12, 11,100,
+                 100,100,100, 35, 30, 24, 19, 16, 14, 12,
+                  13, 14, 16, 17, 19, 21, 23, 23, 23,100,
+                 100,100,100,100,100,100,100,100,100,100);
+    end Lectura_DistanceSensor;
+
+    procedure Reading_CarDistance (D: out Values_Car_Distance) is
+      begin
+        Lectura_DistanceSensor.Reading_CarDistance (D);
+    end Reading_CarDistance;
+
+    protected body Lectura_DistanceSensor is
+      procedure Reading_CarDistance (D: out Values_Car_Distance) is
+         type Time_index is delta 0.1 range 0.0..50.0;
+         t: Time_index;
+      begin
+         t := Time_index(To_Duration(Clock - Big_Bang));
+         i := Indice_Secuencia_CarDistance (integer(t * 10.0) mod 50);
+         D := Secuencia(i);
+         --i := i + 1;
+         Execution_Time (WCET_Car_Distance);
+      end Reading_CarDistance;
+    end Lectura_DistanceSensor;
+
 ---------------------------------------------------------------------
 --     Cuerpo de los procedmientos y objetos para DISPOSITIVOS E/S 
 ---------------------------------------------------------------------
@@ -198,6 +236,16 @@ begin
 
    Execution_Time (WCET_Display);
 end Display_Eyes_Sample;
+
+procedure Display_Car_Distance (D: Values_Car_Distance) is
+begin
+   Current_Time (Big_Bang);
+   Put ("............# ");
+   Put ("Car Distance: ");
+   Print_an_Integer (Integer(D));
+
+   Execution_Time (WCET_Display);
+end Display_Car_Distance;
 
 
 procedure Display_Cronometro (Origen : Ada.Real_Time.Time; Hora: Ada.Real_Time.Time ) is
@@ -251,3 +299,5 @@ end Activate_Automatic_Driving;
 begin
    null;
 end devices;
+
+

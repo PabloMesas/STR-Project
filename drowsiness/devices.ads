@@ -32,6 +32,15 @@ package devices is
     -- It reads an image of the eyes, analyses the image and returns 
     --- the percentage of aperture (0..100) of every eye (left, right)
 
+    ---------------------------------------------------------------------
+    ------ Car Distance -------------------------------------------------
+
+    type Values_Car_Distance is new natural range 0..100;
+
+    procedure Reading_CarDistance (D: out Values_Car_Distance);
+    -- It reads the distance car sensor and returns the safety distance to the nearest
+    --- car in front of the vehicle in percentage. If no car is detected, max value of
+    --- Values_Car_Distance type is returned. (Read interval: 0.380s)
 
     ---------------------------------------------------------------------
     ------ OUTPUT devices interface  
@@ -64,11 +73,13 @@ package devices is
     procedure Beep (v: Volume); 
     -- It beeps with a volume "v" 
 
-     ---------------------------------------------------------------------
+    ---------------------------------------------------------------------
     procedure Activate_Automatic_Driving;
     -- It activates the automatic driving system 
 
-
+    ---------------------------------------------------------------------
+    procedure Display_Car_Distance(D: Values_Car_Distance);
+    -- It displays the car distance
 
 end devices;
 

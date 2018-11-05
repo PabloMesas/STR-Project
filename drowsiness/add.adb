@@ -293,8 +293,8 @@ package body add is
         atention: eeg_state_type := 0;
         Pulse: Values_Pulse_Rate;
         Sign_Counter: Integer := 0;
-        type dos is new Integer range 1..2;
-        blink_counter: dos := 1;
+        --type dos is new Integer range 1..2;
+        blink_counter: Integer := 1;
         light_state: Light_States := OFF;
         next_time: Time := big_bang;
         period : constant Time_Span := Milliseconds (250);
@@ -335,7 +335,7 @@ package body add is
 
             elsif (Sign_Counter = 2) then
                 Beep(4);
-                if (blink_counter = 1) then
+                if (blink_counter = 0) then
                     if (light_state = ON) then
                         light_state := OFF;
                     else
@@ -343,26 +343,26 @@ package body add is
                     end if;
                 end if;
 
-                blink_counter := blink_counter + 1;
+                blink_counter := (blink_counter + 1) mod 2;
 
             elsif (Sign_Counter >= 3) then
                 Activate_Automatic_Driving;
                 Beep(5);
-                 if (blink_counter = 1) then
+                 if (blink_counter = 0) then
                     if (light_state = ON) then
                         light_state := OFF;
                     else
                         light_state := ON;
                     end if;
                 end if;
-                blink_counter := blink_counter + 1;
+                blink_counter := (blink_counter + 1) mod 2;
 
             else 
                 light_state := OFF;
             end if;  
 
             if ( Sign_Counter < 2 ) then 
-                blink_counter := 1;
+                blink_counter := 0;
             end if;
             light(light_state);
 

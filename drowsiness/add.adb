@@ -5,13 +5,6 @@
 -----    Alejandro Mendez Fernandez    -----
 --------------------------------------------
 
--- t- eyes                  -- OP-Eyes
--- t- EEG                   -- OP-EEG
--- t- ShowInfo              -- OP-Pulse
--- t- Pulse
--- +RTI
-
-
 with Kernel.Serial_Output; use Kernel.Serial_Output;
 with Ada.Real_Time; use Ada.Real_Time;
 with System; use System;

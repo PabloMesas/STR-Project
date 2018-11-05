@@ -27,11 +27,9 @@ package body add is
     priority_Show_info          : constant := 3;
     priority_Pulse_measuring    : constant := 8;
     priority_Risk_Control       : constant := 4;
-    priority_Distance_Detection : constant := 5;
 
     -- Prioridades de techo Objetos protegidos:
     -- (Revisar estas prioridades si se han alterado las prioridades de las tareas)
-    priority_P_CarDistance_state : constant := 5;
     priority_P_Eyes_state        : constant := 6;
     priority_P_EEG_state         : constant := 8;
 
@@ -47,14 +45,6 @@ package body add is
     -----------------------------------------------------------------------
     ------------- declaration of protected data
     -----------------------------------------------------------------------
-    protected CarDistance_state is
-        pragma priority (System.Priority'First + priority_P_CarDistance_state);
-        function get return Values_Car_Distance;
-        procedure set (D: Values_Car_Distance);
-    private 
-        state: Values_Car_Distance:= 100;
-    end CarDistance_state;
-
     protected Eyes_state is
         pragma priority (System.Priority'First + priority_P_Eyes_state);
         function get_r_eyes return Eyes_Samples_Type;
@@ -111,10 +101,6 @@ package body add is
     task Risk_Control is
     pragma priority (System.Priority'First + priority_Risk_Control);
     end Risk_Control;
-
-    task Distance_Detection is
-    pragma priority (System.Priority'First + priority_Distance_Detection);
-    end Distance_Detection;
 
     ----------------------------------------------------------------------
     ------------- procedure exported 

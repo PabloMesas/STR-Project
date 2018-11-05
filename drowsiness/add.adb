@@ -1,10 +1,8 @@
-
 --------------------------------------------
 -----             STR 2018             -----
 -----       Pablo Mesas Lafarga        -----
 -----    Alejandro Mendez Fernandez    -----
 --------------------------------------------
-
 
 with Kernel.Serial_Output; use Kernel.Serial_Output;
 with Ada.Real_Time; use Ada.Real_Time;
@@ -19,20 +17,46 @@ with Ada.Interrupts.Names;
 with Pulse_Interrupt; use Pulse_Interrupt;
 
 package body add is
+    -----------------------------------------------------------------------
+    ------------- Constant
+    -----------------------------------------------------------------------
+    -- Prioridades Tareas:
+    -- (Revisar prioridades de techo de los obj. protegidos despues de modificar estos) 
+    priority_Electrodes         : constant := 7;
+    priority_Eyes_Detection     : constant := 6;
+    priority_Show_info          : constant := 3;
+    priority_Pulse_measuring    : constant := 8;
+    priority_Risk_Control       : constant := 4;
+    priority_Distance_Detection : constant := 5;
+
+    -- Prioridades de techo Objetos protegidos:
+    -- (Revisar estas prioridades si se han alterado las prioridades de las tareas)
+    priority_P_CarDistance_state : constant := 5;
+    priority_P_Eyes_state        : constant := 6;
+    priority_P_EEG_state         : constant := 8;
+
+    estados_luz : constant := 2;
 
     -----------------------------------------------------------------------
     ------------- Types
     -----------------------------------------------------------------------
     type e_state is new Integer range 0..2;
     type eeg_state_type is new Natural range 0..1;
-    estados_luz: constant:= 2;
     type dos is mod estados_luz;
 
     -----------------------------------------------------------------------
     ------------- declaration of protected data
     -----------------------------------------------------------------------
+    protected CarDistance_state is
+        pragma priority (System.Priority'First + priority_P_CarDistance_state);
+        function get return Values_Car_Distance;
+        procedure set (D: Values_Car_Distance);
+    private 
+        state: Values_Car_Distance:= 100;
+    end CarDistance_state;
+
     protected Eyes_state is
-        pragma priority (System.Priority'First + 6);
+        pragma priority (System.Priority'First + priority_P_Eyes_state);
         function get_r_eyes return Eyes_Samples_Type;
         procedure set_r_eyes (r: Eyes_Samples_Type);
         function get_eyes_state return e_state;
@@ -43,7 +67,7 @@ package body add is
     end Eyes_state;
 
     protected EEG_state is
-        pragma priority (System.Priority'First + 8);
+        pragma priority (System.Priority'First + priority_P_EEG_state);
         function get_r_eeg return EEG_Samples_Type;
         procedure set_r_eeg (r: EEG_Samples_Type);
         function get_eeg_state return eeg_state_type;
@@ -69,24 +93,28 @@ package body add is
     -----------------------------------------------------------------------
 
     task Electrodes is 
-    pragma priority (System.Priority'First + 7);
+    pragma priority (System.Priority'First + priority_Electrodes);
     end Electrodes;
 
     task Eyes_Detection is 
-    pragma priority (System.Priority'First + 6);
+    pragma priority (System.Priority'First + priority_Eyes_Detection);
     end Eyes_Detection; 
 
     task Show_info is
-    pragma priority (System.Priority'First + 3);
+    pragma priority (System.Priority'First + priority_Show_info);
     end Show_info;
 
     task Pulse_measuring is
-    pragma priority (System.Priority'First + 8);
+    pragma priority (System.Priority'First + priority_Pulse_measuring);
     end Pulse_measuring;
 
     task Risk_Control is
-    pragma priority (System.Priority'First + 4);
+    pragma priority (System.Priority'First + priority_Risk_Control);
     end Risk_Control;
+
+    task Distance_Detection is
+    pragma priority (System.Priority'First + priority_Distance_Detection);
+    end Distance_Detection;
 
     ----------------------------------------------------------------------
     ------------- procedure exported 
